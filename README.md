@@ -11,6 +11,11 @@ Which ML model predicts IPL scores better — a baseline XGBoost model trained o
 
 ---
 
+[IPL-Score-Predictor-—-A-B-Test](./IPL-Score-Predictor-—-A-B-Test.png)
+
+<img width="1920" height="1993" alt="IPL-Score-Predictor-—-A-B-Test" src="https://github.com/user-attachments/assets/c038bcf5-cdba-420d-b30e-ea9510da5c47" />
+
+
 ## Architecture
 
 ```
