@@ -1,0 +1,89 @@
+# ── Secrets — NEVER commit these ──────────────────────────────────────────
+.env
+*.env
+.env.*
+!.env.example
+
+# AWS credentials
+.aws/
+aws-credentials.json
+*credentials*
+*secrets*
+!kubernetes/secrets-store.yml   # safe — contains no actual values
+alb-iam-policy.json
+alb-trust-policy.json
+
+# Terraform secrets
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+
+# ── Terraform ─────────────────────────────────────────────────────────────
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.d/
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# ── ML artifacts — large files, use DVC or S3 instead ────────────────────
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.pt
+*.pth
+mlruns/
+mlflow-data/
+artifacts/
+
+# ── Data files — use DVC instead ─────────────────────────────────────────
+ipl.csv
+*.csv
+*.parquet
+*.feather
+
+# ── Jupyter ───────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Docker ────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Charts and generated files ────────────────────────────────────────────
+!frontend/assets/
+
+# ── IDE ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+*.log
+mlflow.log
+nohup.out
+
+# ── AWS CLI zip ───────────────────────────────────────────────────────────
+awscliv2.zip
+aws/

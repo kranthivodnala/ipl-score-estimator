@@ -1,0 +1,53 @@
+# ── ingress.yml ────────────────────────────────────────────────────────────
+# ALB Ingress — routes external traffic to model services
+# DevOps bridge: Ingress = ALB listener rules you configure at Disney
+# Requires: AWS Load Balancer Controller installed in the cluster
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ipl-ingress
+  namespace: ipl-score-predictor
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    # A/B test traffic split — 80% Model A, 20% Model B
+    alb.ingress.kubernetes.io/actions.weighted-routing: |
+      {"type":"forward","forwardConfig":{"targetGroups":[
+        {"serviceName":"ipl-model-a-svc","servicePort":80,"weight":80},
+        {"serviceName":"ipl-model-b-svc","servicePort":80,"weight":20}
+      ]}}
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /predict
+            pathType: Prefix
+            backend:
+              service:
+                name: weighted-routing
+                port:
+                  name: use-annotation
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: ipl-model-a-svc
+                port:
+                  number: 80
+          - path: /teams
+            pathType: Prefix
+            backend:
+              service:
+                name: ipl-model-a-svc
+                port:
+                  number: 80
+          - path: /venues
+            pathType: Prefix
+            backend:
+              service:
+                name: ipl-model-a-svc
+                port:
+                  number: 80

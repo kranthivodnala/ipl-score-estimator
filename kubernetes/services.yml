@@ -1,0 +1,35 @@
+# ── services.yml ───────────────────────────────────────────────────────────
+# ClusterIP services — internal routing inside the cluster
+# DevOps bridge: Service = ECS Service Discovery / ALB Target Group
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipl-model-a-svc
+  namespace: ipl-score-predictor
+  labels:
+    app: ipl-model-a
+spec:
+  selector:
+    app: ipl-model-a
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipl-model-b-svc
+  namespace: ipl-score-predictor
+  labels:
+    app: ipl-model-b
+spec:
+  selector:
+    app: ipl-model-b
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

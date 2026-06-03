@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IPL Score Predictor — A/B Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b10;--surface:#0f1318;--surface2:#161b23;
+  --border:#1a1f2a;--border2:#222936;
+  --text:#e8eaf0;--muted:#5a6170;--muted2:#2e3440;
+  --green:#00e676;--purple:#7c6ff7;--accent:#f7c948;--red:#ff5252;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden}
+
+/* ── HERO ── */
+.hero{position:relative;height:420px;overflow:hidden;display:flex;align-items:flex-end;margin-bottom:0}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(0.35) saturate(1.2)}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,11,16,0.2) 0%,rgba(8,11,16,0.5) 50%,rgba(8,11,16,1) 100%)}
+.rays{position:absolute;top:0;left:0;right:0;height:100%;overflow:hidden;pointer-events:none}
+.ray{position:absolute;top:-20px;width:2px;height:100%;background:linear-gradient(to bottom,rgba(247,201,72,0.18),transparent);transform-origin:top center;animation:sway 4s ease-in-out infinite}
+.ray:nth-child(1){left:15%;animation-delay:0s;transform:rotate(-8deg)}
+.ray:nth-child(2){left:30%;animation-delay:.6s;transform:rotate(-3deg)}
+.ray:nth-child(3){left:50%;animation-delay:1.2s;transform:rotate(2deg)}
+.ray:nth-child(4){left:70%;animation-delay:.3s;transform:rotate(6deg)}
+.ray:nth-child(5){left:85%;animation-delay:.9s;transform:rotate(10deg)}
+@keyframes sway{0%,100%{opacity:.6}50%{opacity:1}}
+.ball-anim{position:absolute;bottom:60px;right:60px;width:52px;height:52px;animation:ballBounce 2s ease-in-out infinite}
+@keyframes ballBounce{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-24px) rotate(180deg)}}
+.stumps-anim{position:absolute;bottom:55px;right:130px;opacity:0.7}
+.hero-content{position:relative;z-index:2;padding:0 48px 40px;width:100%}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:'';width:24px;height:1px;background:var(--accent)}
+.hero-title{font-family:var(--font-display);font-size:clamp(52px,9vw,100px);line-height:.92;letter-spacing:.02em;color:#fff;margin-bottom:12px}
+.hero-title span{color:var(--accent)}
+.hero-sub{font-size:15px;color:rgba(232,234,240,0.6);font-weight:300;max-width:500px;line-height:1.6}
+
+/* ── TEAM STRIP ── */
+.team-strip{background:var(--surface);border-bottom:1px solid var(--border2);padding:16px 0;overflow:hidden;position:relative}
+.team-strip::before,.team-strip::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2}
+.team-strip::before{left:0;background:linear-gradient(to right,var(--surface),transparent)}
+.team-strip::after{right:0;background:linear-gradient(to left,var(--surface),transparent)}
+.team-track{display:flex;gap:32px;align-items:center;width:max-content;animation:scroll 30s linear infinite}
+.team-track:hover{animation-play-state:paused}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.team-chip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:40px;padding:8px 16px 8px 8px;white-space:nowrap;flex-shrink:0;transition:border-color .2s}
+.team-chip:hover{border-color:var(--accent)}
+.team-logo{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;color:#fff;flex-shrink:0}
+.team-chip-name{font-size:13px;font-weight:500;color:var(--text)}
+
+/* ── MAIN ── */
+.wrap{max-width:960px;margin:0 auto;padding:48px 24px 80px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:40px}
+@media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-box{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center}
+.stat-num{font-family:var(--font-display);font-size:36px;color:var(--accent);line-height:1;margin-bottom:4px}
+.stat-label{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+.section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border2)}
+
+.tips-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px}
+@media(max-width:600px){.tips-strip{grid-template-columns:1fr}}
+.tip-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:flex-start}
+.tip-icon{font-size:24px;flex-shrink:0;line-height:1;margin-top:2px}
+.tip-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.tip-body{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ── FORM ── */
+.form-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden}
+.form-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--purple),var(--green))}
+.pitch-graphic{position:absolute;top:16px;right:24px;opacity:0.06;pointer-events:none}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.field select{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:14px;padding:12px 14px;outline:none;transition:border-color .2s;appearance:none;cursor:pointer}
+.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--surface2)}
+.toggle-row{display:flex;gap:8px}
+.toggle-btn{flex:1;padding:11px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center}
+.toggle-btn.active{background:rgba(247,201,72,.12);border-color:var(--accent);color:var(--accent)}
+.submit-btn{width:100%;padding:16px;background:var(--accent);border:none;border-radius:10px;color:#000;font-family:var(--font-display);font-size:22px;letter-spacing:.05em;cursor:pointer;transition:all .2s}
+.submit-btn:hover{background:#ffd740;transform:translateY(-1px)}
+.submit-btn:disabled{background:var(--muted2);color:var(--muted);cursor:not-allowed;transform:none}
+.submit-btn .spinner{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+.submit-btn.loading .spinner{display:block}
+.submit-btn.loading .btn-text{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RESULTS ── */
+.results{display:none;gap:20px;margin-bottom:24px}
+.results.visible{display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:600px){.results.visible{grid-template-columns:1fr}}
+.result-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;position:relative;overflow:hidden;animation:slideUp .4s ease forwards;opacity:0;transform:translateY(20px)}
+.result-card:nth-child(2){animation-delay:.1s}
+@keyframes slideUp{to{opacity:1;transform:translateY(0)}}
+.result-card.model-a::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--green)}
+.result-card.model-b::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--purple)}
+.result-card.winner{border-color:var(--accent);box-shadow:0 0 32px rgba(247,201,72,.08)}
+.winner-badge{position:absolute;top:16px;right:16px;background:var(--accent);color:#000;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.08em;padding:4px 10px;border-radius:20px;text-transform:uppercase}
+.model-tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.model-tag.a{color:var(--green)}.model-tag.b{color:var(--purple)}
+.model-name{font-size:14px;font-weight:500;color:var(--muted);margin-bottom:20px}
+.score-display{font-family:var(--font-display);font-size:72px;line-height:1;margin-bottom:4px}
+.score-display.a{color:var(--green)}.score-display.b{color:var(--purple)}
+.score-label{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px}
+.meta-row{display:flex;flex-direction:column;gap:6px;padding-top:16px;border-top:1px solid var(--border)}
+.meta-line{display:flex;justify-content:space-between;font-size:12px}
+.meta-line .mk{color:var(--muted);font-family:var(--font-mono);font-size:11px}
+.meta-line .mv{color:var(--text);font-weight:500}
+.latency-badge{display:inline-block;margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--green);background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);border-radius:4px;padding:2px 8px}
+
+.diff-banner{display:none;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:18px 24px;margin-bottom:32px;font-size:14px;color:var(--muted);animation:slideUp .4s .2s ease forwards;opacity:0;transform:translateY(20px)}
+.diff-banner.visible{display:flex;align-items:center;gap:12px}
+.diff-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 8px var(--accent)}
+
+.match-context{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:24px;font-family:var(--font-mono);font-size:12px;color:var(--muted);animation:slideUp .3s ease forwards;opacity:0}
+.match-context.visible{display:block}
+.match-context span{color:var(--text)}
+
+.error-msg{display:none;background:rgba(255,82,82,.08);border:1px solid rgba(255,82,82,.25);border-radius:10px;padding:14px 18px;color:var(--red);font-size:13px;margin-bottom:20px;white-space:pre-line}
+.error-msg.visible{display:block}
+
+/* ── FOOTER ── */
+.footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.footer-left{font-family:var(--font-mono);font-size:11px;color:var(--muted2);letter-spacing:.08em}
+.api-status{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2)}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.loading{background:var(--accent);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <img class="hero-img"
+    src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Eden_Gardens_during_match.jpg/1280px-Eden_Gardens_during_match.jpg"
+    alt="IPL stadium"
+    onerror="this.style.display='none'"/>
+  <div class="hero-overlay"></div>
+  <div class="rays">
+    <div class="ray"></div><div class="ray"></div><div class="ray"></div>
+    <div class="ray"></div><div class="ray"></div>
+  </div>
+  <div class="ball-anim">
+    <svg width="52" height="52" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="24" fill="#DC3545" stroke="#8B0000" stroke-width="1.5"/>
+      <path d="M26 4 Q34 14 34 26 Q34 38 26 48" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.7"/>
+      <path d="M26 4 Q18 14 18 26 Q18 38 26 48" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.7"/>
+      <path d="M6 20 Q16 22 26 22 Q36 22 46 20" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>
+      <path d="M6 32 Q16 30 26 30 Q36 30 46 32" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>
+      <path d="M29 8 L31 11 M29 14 L31 17 M29 20 L31 23 M29 32 L31 35 M29 38 L31 41 M29 44 L31 47" stroke="#fff" stroke-width="1" opacity="0.6"/>
+    </svg>
+  </div>
+  <div class="stumps-anim">
+    <svg width="40" height="70" viewBox="0 0 40 70">
+      <rect x="5"  y="10" width="4" height="55" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="18" y="10" width="4" height="55" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="31" y="10" width="4" height="55" rx="2" fill="rgba(255,255,255,0.5)"/>
+      <rect x="3"  y="8"  width="9" height="4"  rx="2" fill="rgba(255,255,255,0.6)"/>
+      <rect x="16" y="8"  width="9" height="4"  rx="2" fill="rgba(255,255,255,0.6)"/>
+      <rect x="29" y="8"  width="9" height="4"  rx="2" fill="rgba(255,255,255,0.6)"/>
+    </svg>
+  </div>
+  <div class="hero-content">
+    <div class="eyebrow">MLOps Project 4 — A/B Test</div>
+    <h1 class="hero-title">IPL SCORE<br><span>PREDICTOR</span></h1>
+    <p class="hero-sub">Two models. One match. XGBoost v1.0 in production vs LightGBM v2.0 challenger — running in separate Docker containers.</p>
+  </div>
+</div>
+
+<!-- ── TEAM STRIP ── -->
+<div class="team-strip">
+  <div class="team-track" id="team-track"></div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="wrap">
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num">18</div><div class="stat-label">IPL Seasons</div></div>
+    <div class="stat-box"><div class="stat-num">1181</div><div class="stat-label">Matches Trained</div></div>
+    <div class="stat-box"><div class="stat-num">2</div><div class="stat-label">Docker Containers</div></div>
+    <div class="stat-box"><div class="stat-num">16</div><div class="stat-label">Max Features</div></div>
+  </div>
+
+  <div class="section-label">Match factors</div>
+  <div class="tips-strip">
+    <div class="tip-card">
+      <div class="tip-icon">💧</div>
+      <div><div class="tip-title">Dew Factor</div><div class="tip-body">Evening matches develop dew, making bowling harder. Only Model B accounts for this.</div></div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🏟️</div>
+      <div><div class="tip-title">Home Ground</div><div class="tip-body">Teams at home score 6–8 more runs on average due to familiar conditions.</div></div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">📈</div>
+      <div><div class="tip-title">Modern Era</div><div class="tip-body">Post-2020 IPL averages are 12+ runs higher due to aggressive batting strategies.</div></div>
+    </div>
+  </div>
+
+  <div class="section-label">Predict a match</div>
+  <div class="form-card">
+    <div class="pitch-graphic">
+      <svg width="120" height="180" viewBox="0 0 120 180">
+        <ellipse cx="60" cy="90" rx="55" ry="85" fill="none" stroke="white" stroke-width="1.5"/>
+        <rect x="45" y="20" width="30" height="140" fill="none" stroke="white" stroke-width="1.5"/>
+        <rect x="42" y="30" width="36" height="12" fill="none" stroke="white" stroke-width="1"/>
+        <rect x="42" y="138" width="36" height="12" fill="none" stroke="white" stroke-width="1"/>
+        <line x1="5" y1="90" x2="115" y2="90" stroke="white" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Batting Team</label>
+        <select id="batting_team"><option value="">Select team...</option></select>
+      </div>
+      <div class="field">
+        <label>Bowling Team</label>
+        <select id="bowling_team"><option value="">Select team...</option></select>
+      </div>
+      <div class="field">
+        <label>Venue</label>
+        <select id="venue"><option value="">Select venue...</option></select>
+      </div>
+      <div class="field">
+        <label>Match Month</label>
+        <select id="month">
+          <option value="3">March</option>
+          <option value="4" selected>April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:24px">
+      <label>Batting Team Toss Decision</label>
+      <div class="toggle-row">
+        <div class="toggle-btn active" id="toss-bat" onclick="setToss('batting')">🏏 Chose to Bat</div>
+        <div class="toggle-btn" id="toss-field" onclick="setToss('fielding')">🧤 Chose to Field</div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <button class="submit-btn" id="submit-btn" onclick="predict()" disabled>
+      <span class="btn-text">PREDICT SCORE</span>
+      <div class="spinner"></div>
+    </button>
+  </div>
+
+  <div class="match-context" id="match-context"></div>
+
+  <div class="results" id="results">
+    <div class="result-card model-a" id="card-a">
+      <div class="model-tag a">Model A · Production · port 8001</div>
+      <div class="model-name">XGBoost v1.0 · 9 features</div>
+      <div class="score-display a" id="score-a">—</div>
+      <div class="score-label">Predicted first innings runs</div>
+      <div class="meta-row">
+        <div class="meta-line"><span class="mk">Algorithm</span><span class="mv">XGBoost</span></div>
+        <div class="meta-line"><span class="mk">Traffic</span><span class="mv">80% of requests</span></div>
+        <div class="meta-line"><span class="mk">MAE</span><span class="mv">32.9 runs</span></div>
+        <div class="meta-line"><span class="mk">Container</span><span class="mv">ipl-model-a</span></div>
+      </div>
+      <div class="latency-badge" id="lat-a"></div>
+    </div>
+    <div class="result-card model-b" id="card-b">
+      <div class="model-tag b">Model B · Staging · port 8002</div>
+      <div class="model-name">LightGBM v2.0 · 16 features</div>
+      <div class="score-display b" id="score-b">—</div>
+      <div class="score-label">Predicted first innings runs</div>
+      <div class="meta-row">
+        <div class="meta-line"><span class="mk">Algorithm</span><span class="mv">LightGBM</span></div>
+        <div class="meta-line"><span class="mk">Traffic</span><span class="mv">20% of requests</span></div>
+        <div class="meta-line"><span class="mk">MAE</span><span class="mv">31.3 runs</span></div>
+        <div class="meta-line"><span class="mk">Container</span><span class="mv">ipl-model-b</span></div>
+      </div>
+      <div class="latency-badge" id="lat-b"></div>
+    </div>
+  </div>
+
+  <div class="diff-banner" id="diff-banner">
+    <div class="diff-dot"></div>
+    <span id="diff-text"></span>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-left">IPL SCORE PREDICTOR · KRANTHI'S MLOPS PLAN · PROJECT 4</div>
+    <div class="api-status">
+      <div class="status-dot loading" id="status-dot"></div>
+      <span id="status-text">Waiting for containers...</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+// ── Two separate container endpoints ──────────────────────────────────────
+const API_A = 'http://localhost:8001';  // Model A — XGBoost Production
+const API_B = 'http://localhost:8002';  // Model B — LightGBM Staging
+
+let tossVal = 'batting';
+
+const TEAMS = [
+  {name:'Chennai Super Kings',        short:'CSK',  color:'#F9CD1F'},
+  {name:'Delhi Capitals',             short:'DC',   color:'#17479E'},
+  {name:'Gujarat Titans',             short:'GT',   color:'#1C2B5E'},
+  {name:'Kolkata Knight Riders',      short:'KKR',  color:'#3A225D'},
+  {name:'Lucknow Super Giants',       short:'LSG',  color:'#A72056'},
+  {name:'Mumbai Indians',             short:'MI',   color:'#004BA0'},
+  {name:'Punjab Kings',               short:'PBKS', color:'#ED1B24'},
+  {name:'Rajasthan Royals',           short:'RR',   color:'#EA1A85'},
+  {name:'Royal Challengers Bengaluru',short:'RCB',  color:'#EC1C24'},
+  {name:'Sunrisers Hyderabad',        short:'SRH',  color:'#F7A721'},
+];
+
+const VENUES = [
+  'Wankhede Stadium',
+  'MA Chidambaram Stadium',
+  'Eden Gardens',
+  'M Chinnaswamy Stadium',
+  'Arun Jaitley Stadium',
+  'Narendra Modi Stadium, Ahmedabad',
+  'Rajiv Gandhi International Cricket Stadium',
+  'Sawai Mansingh Stadium',
+  'Punjab Cricket Association IS Bindra Stadium, Mohali',
+  'Ekana Cricket Stadium',
+];
+
+// ── Team strip ─────────────────────────────────────────────────────────────
+function buildTeamStrip() {
+  const track = document.getElementById('team-track');
+  const doubled = [...TEAMS, ...TEAMS];
+  track.innerHTML = doubled.map(t => `
+    <div class="team-chip">
+      <div class="team-logo" style="background:${t.color}">${t.short}</div>
+      <span class="team-chip-name">${t.name}</span>
+    </div>`).join('');
+}
+
+// ── Populate dropdowns ─────────────────────────────────────────────────────
+function populateDropdowns() {
+  const batSel  = document.getElementById('batting_team');
+  const bowlSel = document.getElementById('bowling_team');
+  const venSel  = document.getElementById('venue');
+  TEAMS.forEach(t => {
+    batSel.innerHTML  += `<option value="${t.name}">${t.name}</option>`;
+    bowlSel.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+  });
+  VENUES.forEach(v => {
+    venSel.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+}
+
+// ── Wait for both containers ───────────────────────────────────────────────
+async function waitForAPI(maxAttempts = 30) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const btn  = document.getElementById('submit-btn');
+
+  for (let i = 1; i <= maxAttempts; i++) {
+    try {
+      const [rA, rB] = await Promise.all([
+        fetch(`${API_A}/health`, { signal: AbortSignal.timeout(2000) }),
+        fetch(`${API_B}/health`, { signal: AbortSignal.timeout(2000) }),
+      ]);
+      const [dA, dB] = await Promise.all([rA.json(), rB.json()]);
+
+      if (dA.models_loaded && dB.models_loaded) {
+        // Both ready
+        dot.classList.remove('loading');
+        dot.classList.add('ok');
+        text.textContent = 'Model A (8001) + Model B (8002) ready';
+        btn.disabled = false;
+        return;
+      } else {
+        // Containers up but models still loading
+        dot.classList.add('loading');
+        text.textContent = `Models loading in containers... (${i}/${maxAttempts})`;
+      }
+    } catch(e) {
+      // Containers not yet up
+      text.textContent = `Waiting for Docker containers... (${i}/${maxAttempts})`;
+    }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  // Give up
+  dot.style.background = 'var(--red)';
+  text.textContent = 'Containers unreachable — check Docker Desktop';
+  showError('Cannot reach containers.\n\nMake sure docker-compose up is running and both ipl-model-a and ipl-model-b are green in Docker Desktop.');
+}
+
+// ── Toss toggle ────────────────────────────────────────────────────────────
+function setToss(val) {
+  tossVal = val;
+  document.getElementById('toss-bat').classList.toggle('active', val === 'batting');
+  document.getElementById('toss-field').classList.toggle('active', val === 'fielding');
+}
+
+// ── Error helpers ──────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function clearError() {
+  document.getElementById('error-msg').classList.remove('visible');
+}
+
+// ── Predict ────────────────────────────────────────────────────────────────
+async function predict() {
+  clearError();
+
+  const batting = document.getElementById('batting_team').value;
+  const bowling = document.getElementById('bowling_team').value;
+  const venue   = document.getElementById('venue').value;
+  const month   = parseInt(document.getElementById('month').value);
+
+  if (!batting)            { showError('Please select a batting team.'); return; }
+  if (!bowling)            { showError('Please select a bowling team.'); return; }
+  if (batting === bowling) { showError('Batting and bowling teams cannot be the same.'); return; }
+  if (!venue)              { showError('Please select a venue.'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('diff-banner').classList.remove('visible');
+  document.getElementById('match-context').classList.remove('visible');
+
+  const body = JSON.stringify({
+    batting_team : batting,
+    bowling_team : bowling,
+    venue,
+    toss_winner  : tossVal,
+    month,
+    year         : 2025,
+  });
+
+  try {
+    // Call both containers in parallel — true A/B test
+    const [resA, resB] = await Promise.all([
+      fetch(`${API_A}/predict`, { method:'POST', headers:{'Content-Type':'application/json'}, body }),
+      fetch(`${API_B}/predict`, { method:'POST', headers:{'Content-Type':'application/json'}, body }),
+    ]);
+
+    if (!resA.ok) throw new Error(`Model A error: ${resA.status}`);
+    if (!resB.ok) throw new Error(`Model B error: ${resB.status}`);
+
+    const [dataA, dataB] = await Promise.all([resA.json(), resB.json()]);
+    showResults(dataA, dataB, batting, bowling, venue, month);
+
+  } catch(e) {
+    showError(`Prediction failed: ${e.message}`);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ── Show results ───────────────────────────────────────────────────────────
+function showResults(dataA, dataB, batting, bowling, venue, month) {
+  const predA = dataA.prediction;
+  const predB = dataB.prediction;
+  const diff  = Math.abs(predA - predB);
+
+  document.getElementById('score-a').textContent = predA;
+  document.getElementById('score-b').textContent = predB;
+  document.getElementById('lat-a').textContent   = dataA.latency_ms ? `${dataA.latency_ms}ms` : '';
+  document.getElementById('lat-b').textContent   = dataB.latency_ms ? `${dataB.latency_ms}ms` : '';
+
+  // Winner highlight
+  const cardA = document.getElementById('card-a');
+  const cardB = document.getElementById('card-b');
+  cardA.classList.remove('winner'); cardB.classList.remove('winner');
+  document.querySelectorAll('.winner-badge').forEach(b => b.remove());
+
+  if (diff >= 3) {
+    const winner = predA > predB ? cardA : cardB;
+    winner.classList.add('winner');
+    const badge = document.createElement('div');
+    badge.className  = 'winner-badge';
+    badge.textContent = 'Higher';
+    winner.appendChild(badge);
+  }
+
+  // Match context bar
+  const monthNames = {3:'March', 4:'April', 5:'May', 6:'June'};
+  const ctx = document.getElementById('match-context');
+  ctx.innerHTML = `<span>${batting}</span> batting vs <span>${bowling}</span> · <span>${venue}</span> · ${monthNames[month]} 2025 · Toss: <span>${tossVal === 'batting' ? batting + ' chose to bat' : batting + ' chose to field'}</span>`;
+  ctx.classList.add('visible');
+
+  document.getElementById('results').classList.add('visible');
+
+  // Diff banner
+  const diffText = document.getElementById('diff-text');
+  if (diff === 0) {
+    diffText.innerHTML = `Both models agree — predicted score is <strong>${predA} runs</strong>.`;
+  } else {
+    const higher = predA > predB ? 'Model A (Production)' : 'Model B (Staging)';
+    diffText.innerHTML = `Models differ by <strong>${diff} runs</strong>. ${higher} predicts a higher score. Over many predictions, this gap determines which model gets promoted to 100% traffic.`;
+  }
+  document.getElementById('diff-banner').classList.add('visible');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildTeamStrip();
+populateDropdowns();
+waitForAPI();
+</script>
+</body>
+</html>

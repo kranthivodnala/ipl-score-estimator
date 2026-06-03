@@ -1,0 +1,73 @@
+# ── IPL Score Predictor — docker-compose.yml ───────────────────────────────
+# 4 containers:
+#   mlflow    → experiment tracking + registry (port 5001)
+#   model-a   → XGBoost Production model       (port 8001)
+#   model-b   → LightGBM Staging model         (port 8002)
+#   frontend  → nginx serving index.html       (port 3000)
+#
+# Models load from S3 via MLflow registry — no volume mounts needed
+
+networks:
+  ipl-net:
+    driver: bridge
+
+services:
+
+  # ── Model A — XGBoost Production ──────────────────────────────────────
+  model-a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ipl-model-a
+    networks: [ipl-net]
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./app/main.py:/app/main.py
+    environment:
+      - MODEL_STAGE=Production
+      - MLFLOW_TRACKING_URI=http://34.207.82.169:5000
+      - PORT=8000
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    command: >
+      bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+
+  # ── Model B — LightGBM Staging ────────────────────────────────────────
+  model-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ipl-model-b
+    networks: [ipl-net]
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./app/main.py:/app/main.py
+    environment:
+      - MODEL_STAGE=Staging
+      - MLFLOW_TRACKING_URI=http://34.207.82.169:5000
+      - PORT=8000
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    command: >
+      bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+
+  # ── Frontend — nginx ───────────────────────────────────────────────────
+  frontend:
+    image: nginx:alpine
+    container_name: ipl-frontend
+    networks: [ipl-net]
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - model-a
+      - model-b
+    restart: unless-stopped

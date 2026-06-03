@@ -1,0 +1,70 @@
+# ── model-a-deployment.yml ─────────────────────────────────────────────────
+# Model A — XGBoost Production
+# Secrets pulled from AWS Secrets Manager via CSI Driver — no hardcoded values
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipl-model-a
+  namespace: ipl-score-predictor
+  labels:
+    app: ipl-model-a
+    version: v1.0
+    stage: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ipl-model-a
+  template:
+    metadata:
+      labels:
+        app: ipl-model-a
+        version: v1.0
+        stage: production
+    spec:
+      serviceAccountName: ipl-service-account  # links to IAM role via IRSA
+      containers:
+        - name: ipl-model-a
+          image: spidermanintegration/ipl-model-a:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_STAGE
+              value: "Production"
+            - name: PORT
+              value: "8000"
+          # Pull secrets from AWS Secrets Manager via CSI Driver
+          envFrom:
+            - secretRef:
+                name: ipl-app-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu:    "250m"
+            limits:
+              memory: "1Gi"
+              cpu:    "500m"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 30
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: ipl-aws-secrets

@@ -1,0 +1,9 @@
+# ── namespace.yml ──────────────────────────────────────────────────────────
+# Isolates all IPL resources in their own namespace
+# DevOps bridge: namespace = AWS account boundary but inside Kubernetes
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ipl-score-predictor
+  labels:
+    app: ipl-score-predictor

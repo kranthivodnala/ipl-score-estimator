@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+mlflow
+xgboost
+lightgbm
+scikit-learn
+pandas
+numpy
+pydantic
+httpx
+requests
+boto3

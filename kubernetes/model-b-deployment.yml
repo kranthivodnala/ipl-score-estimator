@@ -1,0 +1,69 @@
+# ── model-b-deployment.yml ─────────────────────────────────────────────────
+# Model B — LightGBM Staging (challenger)
+# Secrets pulled from AWS Secrets Manager via CSI Driver
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipl-model-b
+  namespace: ipl-score-predictor
+  labels:
+    app: ipl-model-b
+    version: v2.0
+    stage: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipl-model-b
+  template:
+    metadata:
+      labels:
+        app: ipl-model-b
+        version: v2.0
+        stage: staging
+    spec:
+      serviceAccountName: ipl-service-account
+      containers:
+        - name: ipl-model-b
+          image: spidermanintegration/ipl-model-b:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_STAGE
+              value: "Staging"
+            - name: PORT
+              value: "8000"
+          envFrom:
+            - secretRef:
+                name: ipl-app-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu:    "250m"
+            limits:
+              memory: "1Gi"
+              cpu:    "500m"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 30
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: ipl-aws-secrets
